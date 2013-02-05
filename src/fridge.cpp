@@ -1,11 +1,11 @@
 #include <Arduino.h>
-#include "Metro.h"
-#define kResistorReadPin 0
+#define kResistorReadPin 1
 #define kResistorThreshold 250
-#define kOpenTimeout (30 * 1000)
+#define kOpenTimeout (5 * 1000)
+#define kAlarmOff 0
 typedef enum {
-    OpenState,
     CloseState,
+    OpenState,
     AlarmState
 }State;
 State getCurrentState();
@@ -23,25 +23,30 @@ void silenceAlarm();
 void soundAlarm();
 void stopTimer();
 void startTimer();
+bool alarmTimerPopped();
+bool doorOpen();
 
 State currentState = CloseState;
-Metro *timer = NULL;
+long long alarmSoundStartTime = kAlarmOff;
 
 void step()
 {
     State newState = getCurrentState();
     handleStateChange(newState, currentState);
+    currentState = newState;
     delay(100);
 }
 
 State getCurrentState()
 {
-    if(timer != NULL && timer->check())
+    bool open = doorOpen();
+    bool popped = alarmTimerPopped();
+    if(open && popped)
     {
         return AlarmState;
 
     }
-    else if(analogRead(kResistorReadPin) > kResistorThreshold )
+    else if(open)
     {
         return OpenState;
     }
@@ -54,6 +59,9 @@ void handleStateChange(State newState, State oldState)
 {
     if (newState == oldState)
         return;
+    //char buf [100];
+    //sprintf(buf, "old state %d, new state %d", oldState, newState);
+    //Serial.println(buf);
     switch (oldState)
     {
         case OpenState:
@@ -145,13 +153,31 @@ void closeAlarmTransition()
 
 void startTimer()
 {
-    timer = new Metro(kOpenTimeout);
+    //Serial.println("start timer");
+    alarmSoundStartTime = millis() + kOpenTimeout;
 }
 
 void stopTimer()
 {
-    delete timer;
-    timer = NULL;
+    //Serial.println("stop timer");
+    alarmSoundStartTime = kAlarmOff;
+}
+
+bool alarmTimerPopped()
+{
+    if (alarmSoundStartTime != kAlarmOff)
+    {
+        if (millis() > alarmSoundStartTime)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+bool doorOpen()
+{
+    return analogRead(kResistorReadPin) > kResistorThreshold;
 }
 
 void soundAlarm()
