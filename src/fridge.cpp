@@ -4,6 +4,8 @@
 #define kResistorThreshold 250
 #define kOpenTimeout (5 * 1000)
 #define kAlarmOff 0
+#define kAlarmFreq 2.f
+#define k2_PI 6.28
 #define log(x) //Serial.println(x)
 typedef enum {
     CloseState,
@@ -27,15 +29,18 @@ void stopTimer();
 void startTimer();
 bool alarmTimerPopped();
 bool doorOpen();
+void modulateAlarm();
 
 State currentState = CloseState;
 long long alarmSoundStartTime = kAlarmOff;
+bool alarmOn = false;
 
 void step()
 {
     State newState = getCurrentState();
     handleStateChange(newState, currentState);
     currentState = newState;
+    modulateAlarm();
     delay(100);
 }
 
@@ -185,11 +190,30 @@ bool doorOpen()
 void soundAlarm()
 {
     log("alarm on");
-    analogWrite(kAlarmWritePin, 128);
+    alarmOn = true;
 }
 
 void silenceAlarm()
 {
     log("alarm off");
-    analogWrite(kAlarmWritePin, 0);
+    alarmOn = false;
+}
+
+void modulateAlarm()
+{
+    static float phase = 0.f;
+    int dutyCycle = 0;
+    if (alarmOn)
+    {
+        //sin wave from 0 - 1
+        float coeff = (sin(phase) + 1)/2;
+        dutyCycle = coeff * 255;
+        phase += k2_PI * .1f;
+
+    }else {
+        dutyCycle = 0;
+
+    }
+    log(dutyCycle);
+    analogWrite(kAlarmWritePin, dutyCycle);
 }
