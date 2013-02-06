@@ -1,8 +1,10 @@
 #include <Arduino.h>
 #define kResistorReadPin 1
+#define kAlarmWritePin 3
 #define kResistorThreshold 250
 #define kOpenTimeout (5 * 1000)
 #define kAlarmOff 0
+#define log(x) //Serial.println(x)
 typedef enum {
     CloseState,
     OpenState,
@@ -59,9 +61,9 @@ void handleStateChange(State newState, State oldState)
 {
     if (newState == oldState)
         return;
-    //char buf [100];
-    //sprintf(buf, "old state %d, new state %d", oldState, newState);
-    //Serial.println(buf);
+    char buf [100];
+    sprintf(buf, "old state %d, new state %d", oldState, newState);
+    log(buf);
     switch (oldState)
     {
         case OpenState:
@@ -153,13 +155,13 @@ void closeAlarmTransition()
 
 void startTimer()
 {
-    //Serial.println("start timer");
+    log("start timer");
     alarmSoundStartTime = millis() + kOpenTimeout;
 }
 
 void stopTimer()
 {
-    //Serial.println("stop timer");
+    log("stop timer");
     alarmSoundStartTime = kAlarmOff;
 }
 
@@ -182,8 +184,12 @@ bool doorOpen()
 
 void soundAlarm()
 {
+    log("alarm on");
+    analogWrite(kAlarmWritePin, 128);
 }
 
 void silenceAlarm()
 {
+    log("alarm off");
+    analogWrite(kAlarmWritePin, 0);
 }
