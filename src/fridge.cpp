@@ -2,7 +2,7 @@
 #define kResistorReadPin 1
 #define kAlarmWritePin 3
 #define kResistorThreshold 250
-#define kOpenTimeout (5 * 1000)
+#define kOpenTimeout (5UL * 60UL * 1000UL)
 #define kAlarmOff 0
 #define kAlarmFreq 2.f
 #define k2_PI 6.28
@@ -32,7 +32,7 @@ bool doorOpen();
 void modulateAlarm();
 
 State currentState = CloseState;
-long long alarmSoundStartTime = kAlarmOff;
+unsigned long alarmSoundStartTime = kAlarmOff;
 bool alarmOn = false;
 
 void step()
@@ -214,6 +214,5 @@ void modulateAlarm()
         dutyCycle = 0;
 
     }
-    log(dutyCycle);
     analogWrite(kAlarmWritePin, dutyCycle);
 }
