@@ -2,7 +2,7 @@
 #define kResistorReadPin 1
 #define kAlarmWritePin 3
 #define kDebugLightPin 5
-#define kResistorThreshold 250
+#define kResistorThreshold 0
 #define kOpenTimeout (5UL * 60UL * 1000UL)
 //#define kOpenTimeout (5UL * 1000UL)
 #define kAlarmOff 0
@@ -204,7 +204,9 @@ bool alarmTimerPopped()
 
 bool doorOpen()
 {
-    return analogRead(kResistorReadPin) > kResistorThreshold;
+    int resistance = analogRead(kResistorReadPin);
+    log(resistance);
+    return  resistance > kResistorThreshold;
 }
 
 void soundAlarm()
