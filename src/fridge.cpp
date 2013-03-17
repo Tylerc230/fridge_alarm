@@ -1,8 +1,10 @@
 #include <Arduino.h>
 #define kResistorReadPin 1
 #define kAlarmWritePin 3
+#define kDebugLightPin 5
 #define kResistorThreshold 250
 #define kOpenTimeout (5UL * 60UL * 1000UL)
+//#define kOpenTimeout (5UL * 1000UL)
 #define kAlarmOff 0
 #define kAlarmFreq 2.f
 #define k2_PI 6.28
@@ -30,6 +32,7 @@ void startTimer();
 bool alarmTimerPopped();
 bool doorOpen();
 void modulateAlarm();
+void update(State state);
 
 State currentState = CloseState;
 unsigned long alarmSoundStartTime = kAlarmOff;
@@ -40,7 +43,7 @@ void step()
     State newState = getCurrentState();
     handleStateChange(newState, currentState);
     currentState = newState;
-    modulateAlarm();
+    update(currentState);
     delay(100);
 }
 
@@ -81,6 +84,23 @@ void handleStateChange(State newState, State oldState)
             fromAlarmTo(newState);
             break;
     }
+}
+
+void update(State state)
+{
+    switch (state)
+    {
+        case  CloseState:
+            analogWrite(kDebugLightPin, 0);
+            break;
+        case OpenState:
+            analogWrite(kDebugLightPin, 128);
+            break;
+        case AlarmState:
+            analogWrite(kDebugLightPin, 255);
+            break;
+    }
+    modulateAlarm();
 }
 
 void fromOpenTo(State newState)
