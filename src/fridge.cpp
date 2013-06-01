@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <JeeLib.h>
 #define kAlarmWritePin 3
 #define kResistorThreshold 0
 #define kOpenTimeout (5UL * 60UL * 1000UL)
@@ -42,13 +43,20 @@ bool alarmOn = false;
 int lightPins[kNumSensors] = {5, 6};
 int lightSensorReadPins[kNumSensors] = {2, 1};
 
+ISR(WDT_vect) { Sleepy::watchdogEvent(); } // Setup for low power waiting
+
 void step()
 {
     State newState = getCurrentState();
     handleStateChange(newState, currentState);
     currentState = newState;
     update(currentState);
-    delay(100);
+    if (currentState == CloseState)
+    {
+        Sleepy::loseSomeTime(100);      // Instead of delay(1000);
+    }else{
+        delay(100);
+    }
 }
 
 State getCurrentState()
