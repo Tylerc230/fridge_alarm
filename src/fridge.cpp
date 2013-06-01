@@ -1,14 +1,15 @@
 #include <Arduino.h>
-#define kResistorReadPin 1
 #define kAlarmWritePin 3
-#define kDebugLightPin 5
 #define kResistorThreshold 0
 #define kOpenTimeout (5UL * 60UL * 1000UL)
 //#define kOpenTimeout (5UL * 1000UL)
 #define kAlarmOff 0
 #define kAlarmFreq 2.f
 #define k2_PI 6.28
-#define log(x) //Serial.println(x)
+#define log(x) Serial.println(x)
+#define spfLog(...) {char buf [100];\
+    sprintf(buf,__VA_ARGS__);\
+    log(buf);}
 typedef enum {
     CloseState,
     OpenState,
@@ -30,13 +31,16 @@ void soundAlarm();
 void stopTimer();
 void startTimer();
 bool alarmTimerPopped();
-bool doorOpen();
+int doorOpen();
 void modulateAlarm();
 void update(State state);
 
 State currentState = CloseState;
 unsigned long alarmSoundStartTime = kAlarmOff;
 bool alarmOn = false;
+#define kNumSensors 2
+int lightPins[kNumSensors] = {5, 6};
+int lightSensorReadPins[kNumSensors] = {2, 1};
 
 void step()
 {
@@ -49,7 +53,7 @@ void step()
 
 State getCurrentState()
 {
-    bool open = doorOpen();
+    bool open = doorOpen() >= 0;
     bool popped = alarmTimerPopped();
     if(open && popped)
     {
@@ -69,9 +73,7 @@ void handleStateChange(State newState, State oldState)
 {
     if (newState == oldState)
         return;
-    char buf [100];
-    sprintf(buf, "old state %d, new state %d", oldState, newState);
-    log(buf);
+    spfLog("old state %d, new state %d", oldState, newState);
     switch (oldState)
     {
         case OpenState:
@@ -88,16 +90,21 @@ void handleStateChange(State newState, State oldState)
 
 void update(State state)
 {
+    int openIndex = doorOpen();
+    int pin = lightPins[openIndex];
     switch (state)
     {
         case  CloseState:
-            analogWrite(kDebugLightPin, 0);
+            for (int sensorIndex = 0; sensorIndex < kNumSensors; sensorIndex++)
+            {
+                analogWrite(lightPins[sensorIndex], 0);
+            }
             break;
         case OpenState:
-            analogWrite(kDebugLightPin, 128);
+            analogWrite(pin, 128);
             break;
         case AlarmState:
-            analogWrite(kDebugLightPin, 255);
+            analogWrite(pin, 255);
             break;
     }
     modulateAlarm();
@@ -202,11 +209,18 @@ bool alarmTimerPopped()
     return 0;
 }
 
-bool doorOpen()
+int doorOpen()
 {
-    int resistance = analogRead(kResistorReadPin);
-    log(resistance);
-    return  resistance > kResistorThreshold;
+    for (int sensorIndex = 0; sensorIndex < kNumSensors; sensorIndex++)
+    {
+        int pin = lightSensorReadPins[sensorIndex];
+        int resistance = analogRead(pin);
+        if (resistance > kResistorThreshold)
+        {
+            return sensorIndex;
+        }
+    }
+    return -1;
 }
 
 void soundAlarm()
